@@ -1,7 +1,9 @@
 #include "SerialManager.hpp"
+#include <cstring>  // Include this for strncpy
 
-SerialManager::SerialManager()
-    : bufferIndex(0)
+// Constructor implementation
+SerialManager::SerialManager(HardwareSerial *serial)
+    : serial(serial), bufferIndex(0)
 {
     buffer[0] = '\0'; // Initialize buffer with an empty string
 }
@@ -18,10 +20,10 @@ void SerialManager::addDataToBuffer(const char *data, size_t length)
 
 void SerialManager::transmitData()
 {
-    if (bufferIndex > 0)
+    if (bufferIndex > 0 && serial)
     {
-        SerialPort.print(buffer); // Transmit the entire buffer
-        resetBuffer();            // Reset the buffer index after transmitting
+        serial->print(buffer); // Transmit the entire buffer using the passed HardwareSerial instance
+        resetBuffer();         // Reset the buffer index after transmitting
     }
 }
 
