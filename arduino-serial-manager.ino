@@ -1,42 +1,59 @@
 #include <Arduino.h>
 #include <math.h>
 #include "SerialManager.hpp"
+#include "EncodedSerialManager.hpp"
+// #include "ToString.hpp"
 
 const float frequency = 1.0;         // Frequency of the sine wave in Hz
 const int amplitude = 1000;          // Amplitude of the sine wave
 const float samplingInterval = 0.01; // Time interval between samples in seconds
 const unsigned long transmitInterval = 20;  // Transmit every 500 milliseconds
 
-SerialManager serial_manager;
+// Define the dictionary as an array of KeyValuePair
+const KeyValuePair dictionary[] = {
+    {"position", 0},
+    {"X.velocity", 1},
+    {"X.torque", 2},
+    {"Y.velocity", 3},
+    {"Y.torque", 4},
+    {"Z.velocity", 5},
+    {"Z.torque", 6},
+    {"logger", 7}
+};
+
+// Number of items in the dictionary
+const size_t dict_size = sizeof(dictionary) / sizeof(dictionary[0]);
+
+// Create an instance of EncodedSerialManager with the custom map
+EncodedSerialManager serial_manager(dictionary, dict_size);
 
 void setup() {
   Serial.begin(115200);
+  // serial_manager.setHexEnable(true);
 }
 
 void loop() {
   static unsigned long lastTransmitTime = 0;  // Track the last transmission time
 
   // Generate sine wave data
-  float sineValue = generateSineWave();
+  float sineValue = generateSineWave(amplitude, frequency, samplingInterval);
+  float sineValue2 = generateSineWave(amplitude/2, frequency*2, samplingInterval);
 
   // Format data as needed, e.g., "X.velocity <sineValue>"
-  char data[30];
-  snprintf(data, sizeof(data), "X.velocity %d", (int)sineValue);
-  // Add data to buffer
-  serial_manager.addDataToBuffer(data);
-
-  snprintf(data, sizeof(data), "Y.velocity %d", (int)sineValue+100);
-  // Add data to buffer
-  serial_manager.addDataToBuffer(data);
-
-  snprintf(data, sizeof(data), "Z.velocity %d", (int)sineValue-100);
-  // Add data to buffer
-  serial_manager.addDataToBuffer(data);
-
-
-  snprintf(data, sizeof(data), "logger velocity %d", (int)sineValue);
-  // Add data to buffer
-  serial_manager.addDataToBuffer(data);
+  // Encode "X.velocity" and add " 100.5" as raw data
+  serial_manager.addDataToBufferWithFloat("X.velocity", -sineValue);
+  serial_manager.addDataToBuffer("logger", "X.velocity " + String((int)sineValue));
+  serial_manager.addDataToBufferWithFloat("X.torque", sineValue2);
+  serial_manager.addDataToBuffer("logger", "X.torque " + String((int)sineValue2));
+  serial_manager.addDataToBufferWithFloat("Y.velocity", sineValue+100);
+  serial_manager.addDataToBuffer("logger", "Y.velocity " + String((int)sineValue+100));
+  serial_manager.addDataToBufferWithFloat("Y.torque", sineValue2);
+  serial_manager.addDataToBuffer("logger", "Y.torque " + String((int)sineValue2));
+  serial_manager.addDataToBufferWithFloat("Z.velocity", sineValue-100);
+  serial_manager.addDataToBuffer("logger", "Z.velocity " + String((int)sineValue-100));
+  serial_manager.addDataToBufferWithFloat("Z.torque", sineValue2);
+  serial_manager.addDataToBuffer("logger", "Z.torque " + String((int)sineValue2));
+  serial_manager.addDataToBuffer("position", String((int)sineValue) + " " + String((int)sineValue2) + " " + String((int)sineValue2));
 
 
   // Check if it's time to transmit or if the buffer is full
@@ -49,12 +66,9 @@ void loop() {
   delay(samplingInterval * 1000); // Convert seconds to milliseconds
 }
 
-float generateSineWave() {
-  static float time = 0.0;
-
-  // Calculate sine wave value
-  float value = amplitude * (sin(2 * PI * frequency * time));  // Scale to 0 - amplitude
-  time += samplingInterval;  // Increment time for the next sample
-
+float generateSineWave(float amplitude, float frequency, float samplingInterval) {
+  static float phase = 0.0;  // Track the phase of the sine wave
+  float value = amplitude * sin(2 * PI * frequency * phase);
+  phase += samplingInterval;  // Increment the phase
   return value;
 }

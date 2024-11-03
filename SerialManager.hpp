@@ -19,7 +19,7 @@ class SerialManager {
     // Checks if the buffer is full
     bool isBufferFull() const;
 
-  private:
+  protected:  // Change to protected to allow derived classes access
     static const size_t BUFFER_SIZE = 1024;   // Adjust as needed
     static const char SEPARATOR = ',';       // Separator between messages
     char buffer[BUFFER_SIZE];
