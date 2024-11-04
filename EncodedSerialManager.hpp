@@ -5,40 +5,29 @@
 #include <Arduino.h>
 
 // Key-value pair structure for dictionary encoding
-struct KeyValuePair {
-    const char* key;
-    int value;
+struct VarID {
+    const char* name;
+    byte id;
 };
 
-class EncodedSerialManager : public SerialManager {
+class EncodedSerialManager {
   public:
     // Constructor that accepts a dictionary for encoding
-    EncodedSerialManager(const KeyValuePair dictionary[], size_t dict_size);
+    EncodedSerialManager(const VarID varDictionary[], size_t dict_size);
 
     // Adds encoded data with optional raw data (used for strings and integers)
-    void addDataToBuffer(const char *encoded_data, const String& raw_data = "");
-
-    // Adds encoded data with a float value, rounded and scaled for fixed-point transmission
-    void addDataToBufferWithFloat(const char *encoded_data, float value);
-
-    // Enable or disable hexadecimal output
-    void setHexEnable(bool enable) { hex_enable = enable; }
+    byte lookupVarID(const char* varName);
+    void addDataToBuffer(const char* varName, byte dataType, void* value, const char* params[] = nullptr, byte paramsLength = 0);
+    void transmitData(void);
+    void resetBuffer(void);
 
   private:
-    // Helper function to find the encoded integer value for a given key
-    int getEncodedValue(const char *key) const;
-
-    // Helper function to print encoded value in hex or decimal
-    void printEncodedValue(const char *encoded_data);
-
-    void printRawData(const String &raw_data);
-
-    // Helper function to print a float value as a fixed-point integer, in hex or decimal
-    void printFixedPointFloat(float value);
-
-    const KeyValuePair* dictionary;  // Pointer to the array of KeyValuePairs
+    const VarID* varDictionary;  // Pointer to the array of KeyValuePairs
     size_t dict_size;                // Number of items in the dictionary
-    bool hex_enable = false;         // Flag for enabling hex encoding
+    int bufferIndex = 0;
+    static const size_t BUFFER_SIZE = 1024;   // Adjust as needed
+    char buffer[BUFFER_SIZE];
+    const int FIXED_POINT_SCALING_FACTOR = 1000;  // Fixed-point scaling factor
 };
 
 #endif // ENCODEDSERIALMANAGER_HPP
